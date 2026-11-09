@@ -11,24 +11,34 @@
     <script>
         const accounts = [
             {
-                name: "Savings",
+                name: "Checking",
                 monthlyRate: 0.01,
-                minBalance: 1000
+                minBalance: 1000 // Emergency fund
             },
             {
-                name: "HighYield",
+                name: "HYSA",
                 monthlyRate: 0.02,
-                minBalance: 2000
+                minBalance: 0
+            },
+            {
+                name: "S&P500",
+                monthlyRate: 0.02,
+                minBalance: 0
             }
         ];
+
+        // TODO add income, cost of living, etc.
+
         const settings = {
-            initialWealth: 10000,
-            months: 2
+            initialWealth: 10000, // initial value
+            months: 2 // duration
         };
         
+        // Initialize objects for variables and constraints
         const variables = {};
         const constraints = {};
 
+        // Define variables and constraints
         for (const account of accounts) {
             for (let month = 0; month < settings.months; month++) {
                 // Starting and ending values this month
@@ -105,15 +115,17 @@
             constraints: constraints,
             variables: variables,
         };
+
+        // Solve optimization
         const results = solver.Solve(model);
+
+        // TODO plot this using plotly.js
         console.log(results);
     </script>
 </head>
 
 <body>
-    <div id="trajectory">
 
-    </div>
 </body>
 
 </html>

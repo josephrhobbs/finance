@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script src="https://unpkg.com/javascript-lp-solver/dist/solver.global.js"></script>
+    <title>Towards Financial Freedom</title>
+    <script>
+        const accounts = [
+            {
+                name: "Savings",
+                monthlyRate: 0.01,
+                minBalance: 1000
+            },
+            {
+                name: "HighYield",
+                monthlyRate: 0.02,
+                minBalance: 2000
+            }
+        ];
+        const settings = {
+            initialWealth: 10000,
+            months: 2
+        };
+        
+        const variables = {};
+        const constraints = {};
+
+        for (const account of accounts) {
+            for (let month = 0; month < settings.months; month++) {
+                // Starting and ending values this month
+                const acctMonth = `acct_${account.name}_mo_${month}`;
+                const startName = `START_${acctMonth}`;
+                const endName = `END_${acctMonth}`;
+
+                // Minimum constraint for the start of the month
+                const minValueConstraintName = `CONSTRAINT_MINVALUE_${acctMonth}`;
+
+                // Growth constraint
+                const growthConstraintName = `CONSTRAINT_GROWTH_${acctMonth}`;
+
+                // Save variables
+                variables[startName] = {};
+                variables[endName] = {};
+
+                // Minimum value and growth constraints
+                constraints[minValueConstraintName] = { min: account.minBalance };
+                constraints[growthConstraintName] = { equal: 0 };
+            }
+
+            for (let month = 0; month < settings.months; month++) {
+                // Starting and ending values this month
+                const acctMonth = `acct_${account.name}_mo_${month}`;
+                const startName = `START_${acctMonth}`;
+                const endName = `END_${acctMonth}`;
+
+                // Minimum value constraint
+                const minValueConstraintName = `CONSTRAINT_MINVALUE_${acctMonth}`;
+                variables[startName][minValueConstraintName] = 1;
+
+                // Growth constraint
+                const growthConstraintName = `CONSTRAINT_GROWTH_${acctMonth}`;
+                variables[startName][growthConstraintName] = 1 + account.monthlyRate;
+                variables[endName][growthConstraintName] = -1;
+            }
+        }
+
+        // Construct wealth conservation
+        for (let month = 1; month < settings.months; month++) {
+            // Construct conservation constraint
+            const conservationConstraintName = `CONSTRAINT_CONSERVE_mo_${month}`;
+            constraints[conservationConstraintName] = { equal: 0 };
+            
+            // Get THIS month's start but LAST month's end
+            for (const account of accounts) {
+                const startName = `START_acct_${account.name}_mo_${month}`;
+                const endName = `END_acct_${account.name}_mo_${month-1}`;
+                variables[startName][conservationConstraintName] = 1;
+                variables[endName][conservationConstraintName] = -1;
+            }
+        }
+
+        // Initial wealth constraints
+        const conservationConstraintName = `CONSTRAINT_CONSERVE_mo_0`;
+        constraints[conservationConstraintName] = { equal: settings.initialWealth };
+        for (const account of accounts) {
+            const startName = `START_acct_${account.name}_mo_0`;
+            variables[startName][conservationConstraintName] = 1;
+        }
+
+        // Final wealth measurement
+        const objName = `OBJ`;
+        for (const account of accounts) {
+            const endName = `END_acct_${account.name}_mo_${settings.months-1}`;
+            variables[endName][objName] = 1;
+        }
+
+        // Construct optimization
+        const model = {
+            optimize: "OBJ",
+            opType: "max",
+            constraints: constraints,
+            variables: variables,
+        };
+        const results = solver.Solve(model);
+        console.log(results);
+    </script>
+</head>
+
+<body>
+    <div id="trajectory">
+
+    </div>
+</body>
+
+</html>
